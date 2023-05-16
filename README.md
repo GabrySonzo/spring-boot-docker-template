@@ -1,7 +1,7 @@
 # spring-boot-docker-template
 
-##
-mvn clean package
+mvn clean package##
+
 
 ##
 docker build --pull --rm -f "Dockerfile" -t docker-spring:latest "."
