@@ -9,10 +9,19 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.*;
 
+import javax.websocket.MessageHandler.Partial;
+
 
 @Service
 public class JavaBossBot extends TelegramLongPollingBot {
-
+	public class Prodotto{
+		String nome;
+		double prezzo;
+		public Prodotto(String nome, double prezzo){
+			this.nome = nome;
+			this.prezzo = prezzo;
+		}
+	}
 	private static final Logger LOG = LoggerFactory.getLogger(JavaBossBot.class);
 
 	private String botUsername;
@@ -53,20 +62,35 @@ public class JavaBossBot extends TelegramLongPollingBot {
 
 			message.setText("Ciao, sono HAL9000");
 
-			LinkedList<String> foodList = new LinkedList<String>();
-			foodList.add("PaneCotoletta");
-			foodList.add("FocacciaProsciutto");
-			foodList.add("Panzerotto");
+			LinkedList<Prodotto> foodList = new LinkedList<Prodotto>();
+			foodList.add(new Prodotto("Pane e cotoletta", 2));
+			foodList.add(new Prodotto("Piadina cotoletta patatine e maionese", 2.80));
+			foodList.add(new Prodotto("Pizza piegata", 1.50));
 		   
-			LinkedList<String> drinkList = new LinkedList<String>();
-			drinkList.add("AcquaNaturale");
-			drinkList.add("CocaCola");
-			drinkList.add("ThePesca");
-
+			LinkedList<Prodotto> drinkList = new LinkedList<Prodotto>();
+			drinkList.add(new Prodotto("Acqua", 0.40));
+			drinkList.add(new Prodotto("Pepsi", 0.70));
+			drinkList.add(new Prodotto("The", 0.60));
+			
 			if(command.equals("/listaCibo")){
-				foodList.stream().forEach(a -> message.setText(a));
+				String s = foodList.stream().reduce("", (String part, Prodotto act) -> {part += act.nome + ": " + act.prezzo + "\n"; return part;}, (String s1, String s2) -> s1);
+				message.setText(s);
 			}
 			
+			if(command.equals("/listaBibite")){
+				String s = drinkList.stream().reduce("", (String part, Prodotto act) -> {part += act.nome + ": " + act.prezzo + "\n"; return part;}, (String s1, String s2) -> s1);
+				message.setText(s);
+			}
+
+			if(foodList.stream().reduce(false, (boolean part, Prodotto act) -> {if(command.equals(act.nome)){
+				return true;
+			}
+			else{
+				return false;
+			}}, null)){
+				message.setText("ordine");
+			}
+
 			try {
 				execute(message);
 			} catch (TelegramApiException e) {
