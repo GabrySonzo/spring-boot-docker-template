@@ -9,9 +9,6 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.*;
 
-import javax.websocket.MessageHandler.Partial;
-
-
 @Service
 public class JavaBossBot extends TelegramLongPollingBot {
 	public class Prodotto{
@@ -21,13 +18,20 @@ public class JavaBossBot extends TelegramLongPollingBot {
 			this.nome = nome;
 			this.prezzo = prezzo;
 		}
-	}
-	private static final Logger LOG = LoggerFactory.getLogger(JavaBossBot.class);
 
+		@Override
+		public Prodotto clone(){
+			return new Prodotto(nome, prezzo);
+		}
+	}
+	LinkedList<Prodotto> carrello = new LinkedList<Prodotto>();
+	boolean ordine = false;
+	
+	private static final Logger LOG = LoggerFactory.getLogger(JavaBossBot.class);
+	
 	private String botUsername;
 	private static String botToken;
 	private static JavaBossBot instance;
-
 	public static JavaBossBot getJavaBossBotInstance(String botUsername, String botToken){
 		if(instance == null) {
 			instance = new JavaBossBot();
@@ -36,11 +40,11 @@ public class JavaBossBot extends TelegramLongPollingBot {
 		}
 		return instance;
 	}
-
+	
 	private JavaBossBot(){
 		super(botToken);
 	}
-
+	
 	@Override
 	public String getBotToken() {
 		return botToken;
@@ -50,7 +54,7 @@ public class JavaBossBot extends TelegramLongPollingBot {
 	public String getBotUsername() {
 		return botUsername;
 	}
-
+	
 	@Override
 	public void onUpdateReceived(Update update) {
 		if (update.hasMessage() && update.getMessage().hasText()) {
@@ -59,9 +63,11 @@ public class JavaBossBot extends TelegramLongPollingBot {
 			String command = update.getMessage().getText();
 			SendMessage message = new SendMessage();
 			message.setChatId(chatId);
-
-			message.setText("Ciao, sono HAL9000");
-
+			
+			if(command.equals("/start")){
+				message.setText("Ciao, sono HAL9000");
+			}
+			
 			LinkedList<Prodotto> foodList = new LinkedList<Prodotto>();
 			foodList.add(new Prodotto("Pane e cotoletta", 2));
 			foodList.add(new Prodotto("Piadina cotoletta patatine e maionese", 2.80));
@@ -74,21 +80,44 @@ public class JavaBossBot extends TelegramLongPollingBot {
 			
 			if(command.equals("/listaCibo")){
 				String s = foodList.stream().reduce("", (String part, Prodotto act) -> {part += act.nome + ": " + act.prezzo + "\n"; return part;}, (String s1, String s2) -> s1);
+				ordine = false;
 				message.setText(s);
 			}
 			
 			if(command.equals("/listaBibite")){
 				String s = drinkList.stream().reduce("", (String part, Prodotto act) -> {part += act.nome + ": " + act.prezzo + "\n"; return part;}, (String s1, String s2) -> s1);
+				ordine = false;
 				message.setText(s);
 			}
 
-			if(foodList.stream().reduce(false, (boolean part, Prodotto act) -> {if(command.equals(act.nome)){
-				return true;
+			if(command.equals("/carrello")){
+				String s = carrello.stream().reduce("", (String part, Prodotto act) -> {part += act.nome + ": " + act.prezzo + "\n"; return part;}, (String s1, String s2) -> s1);
+				ordine = false;
+				message.setText(s);
 			}
-			else{
-				return false;
-			}}, null)){
-				message.setText("ordine");
+
+			if(command.equals("/ordine")){
+				ordine = true;
+				message.setText("Digita il nome del prodotto che vuoi ordinare");
+			}
+
+			if(command.equals("/totale")){
+				double t = carrello.stream().reduce((double)0, (p,a) -> p=p+a.prezzo, Double::sum);
+				ordine = false;
+				message.setText("Devi pagare in tutto" + t);
+				message.setText("suca");
+			}
+
+			if(ordine){
+				foodList.stream().forEach( x -> {if(command.equals(x.nome)){
+					carrello.add(x.clone());
+					message.setText("Prodotto aggiunto al carrello");
+				}});
+
+				drinkList.stream().forEach( x -> {if(command.equals(x.nome)){
+					carrello.add(x.clone());
+					message.setText("Prodotto aggiunto al carrello");
+				}});
 			}
 
 			try {
